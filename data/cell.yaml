@@ -1,0 +1,3 @@
+# Classes
+nc: 4  # number of classes
+names: ['cells', 'Platelets', 'RBC', 'WBC']  # class names

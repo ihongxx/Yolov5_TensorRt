@@ -473,7 +473,7 @@ class DetectMultiBackend(nn.Module):
     @staticmethod
     def model_type(p='path/to/model.pt'):
         # Return model type from model path, i.e. path='path/to/model.onnx' -> type=onnx
-        from export import export_formats
+        # from export import export_formats
         suffixes = list(export_formats().Suffix) + ['.xml']  # export suffixes
         check_suffix(p, suffixes)  # checks
         p = Path(p).name  # eliminate trailing separators
@@ -482,6 +482,20 @@ class DetectMultiBackend(nn.Module):
         tflite &= not edgetpu  # *.tflite
         return pt, jit, onnx, xml, engine, coreml, saved_model, pb, tflite, edgetpu, tfjs
 
+def export_formats():
+    # YOLOv5 export formats
+    x = [['PyTorch', '-', '.pt', True],
+         ['TorchScript', 'torchscript', '.torchscript', True],
+         ['ONNX', 'onnx', '.onnx', True],
+         ['OpenVINO', 'openvino', '_openvino_model', False],
+         ['TensorRT', 'engine', '.engine', True],
+         ['CoreML', 'coreml', '.mlmodel', False],
+         ['TensorFlow SavedModel', 'saved_model', '_saved_model', True],
+         ['TensorFlow GraphDef', 'pb', '.pb', True],
+         ['TensorFlow Lite', 'tflite', '.tflite', False],
+         ['TensorFlow Edge TPU', 'edgetpu', '_edgetpu.tflite', False],
+         ['TensorFlow.js', 'tfjs', '_web_model', False]]
+    return pd.DataFrame(x, columns=['Format', 'Argument', 'Suffix', 'GPU'])
 
 class AutoShape(nn.Module):
     # YOLOv5 input-robust model wrapper for passing cv2/np/PIL/torch inputs. Includes preprocessing, inference and NMS
