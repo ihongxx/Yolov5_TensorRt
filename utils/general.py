@@ -698,7 +698,7 @@ def clip_coords(boxes, shape):
         boxes[:, [1, 3]] = boxes[:, [1, 3]].clip(0, shape[0])  # y1, y2
 
 
-def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
+def non_max_suppression(prediction, conf_thres=0.01, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
                         labels=(), max_det=300):
     """Runs Non-Maximum Suppression (NMS) on inference results
 
@@ -707,7 +707,9 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     """
 
     nc = prediction.shape[2] - 5  # number of classes
+    print('prediction[..., 4]:', prediction[..., 4])
     xc = prediction[..., 4] > conf_thres  # candidates
+    # print('nc.shape:', nc.size)
 
     # Checks
     assert 0 <= conf_thres <= 1, f'Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0'
@@ -722,9 +724,11 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     merge = False  # use merge-NMS
 
     t = time.time()
+    print(' prediction.shape[0]:',  prediction.shape[0])
     output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
+        print('x[..., 2:4]:', x[..., 2:4])
         x[((x[..., 2:4] < min_wh) | (x[..., 2:4] > max_wh)).any(1), 4] = 0  # width-height
         x = x[xc[xi]]  # confidence
 

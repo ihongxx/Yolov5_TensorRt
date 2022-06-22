@@ -14,9 +14,14 @@ logger = logging.getLogger(__name__)
 ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_char_p
 ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
 
-class Calibrator(trt.IInt8EntropyCalibrator2):
+# calibrator
+#IInt8EntropyCalibrator2
+#IInt8LegacyCalibrator
+#IInt8EntropyCalibrator
+#IInt8MinMaxCalibrator
+class Calibrator(trt.IInt8EntropyCalibrator):
     def __init__(self, stream, cache_file=""):
-        trt.IInt8EntropyCalibrator2.__init__(self)       
+        trt.IInt8EntropyCalibrator.__init__(self)       
         self.stream = stream
         self.d_input = cuda.mem_alloc(self.stream.calibration_data.nbytes)
         self.cache_file = cache_file
