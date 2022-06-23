@@ -49,45 +49,8 @@ BATCH_SIZE = 25
 BATCH = 10
 height = 640
 width = 640
-# CALIB_IMG_DIR = '/home/willer/yolov5-3.1/data/coco/images/train2017'
 CALIB_IMG_DIR = 'E:\\Datasets\\IMAGES\\Object_Detection\\Red_Cell\\images'
 onnx_model_path = './model/onnx/cell.onnx'
-# onnx_model_path = "/home/willer/yolov5-4.0/models/models_silu/yolov5s-simple.onnx"
-def preprocess_v1(image_raw):
-    h, w, c = image_raw.shape
-    image = cv2.cvtColor(image_raw, cv2.COLOR_BGR2RGB)
-    # Calculate widht and height and paddings
-    r_w = width / w
-    r_h = height / h
-    if r_h > r_w:
-        tw = width
-        th = int(r_w * h)
-        tx1 = tx2 = 0
-        ty1 = int((height - th) / 2)
-        ty2 = height - th - ty1
-    else:
-        tw = int(r_h * w)
-        th = height
-        tx1 = int((width - tw) / 2)
-        tx2 = width - tw - tx1
-        ty1 = ty2 = 0
-    # Resize the image with long side while maintaining ratio
-    image = cv2.resize(image, (tw, th))
-    # Pad the short side with (128,128,128)
-    image = cv2.copyMakeBorder(
-        image, ty1, ty2, tx1, tx2, cv2.BORDER_CONSTANT, (128, 128, 128)
-    )
-    image = image.astype(np.float32)
-    # Normalize to [0,1]
-    image /= 255.0
-    # HWC to CHW format:
-    image = np.transpose(image, [2, 0, 1])
-    # CHW to NCHW format
-    #image = np.expand_dims(image, axis=0)
-    # Convert the image to row-major order, also known as "C order":
-    #image = np.ascontiguousarray(image)
-    return image
-
 
 def preprocess_v2(img):
     img = cv2.resize(img, (640, 640))
@@ -97,10 +60,14 @@ def preprocess_v2(img):
     return img
 
 def preprocess(img):
-    img = letterbox(img)
-    img = img.transpose((2, 0, 1))[::-1]
-    img = np.ascontiguousarray(img)
-    # img /= 255.0
+    img = cv2.resize(img, (640, 640))
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # img = img.transpose((2, 0, 1)).astype(np.float32)
+    
+    # img = letterbox(img)
+    img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+    # img = np.ascontiguousarray(img)
+    img /= 255.0
     return img
 
 class DataLoader:
@@ -122,7 +89,7 @@ class DataLoader:
             for i in range(self.batch_size):
                 assert os.path.exists(self.img_list[i + self.index * self.batch_size]), 'not found!!'
                 img = cv2.imread(self.img_list[i + self.index * self.batch_size])
-                img = preprocess_v2(img)
+                img = preprocess(img)
                 self.calibration_data[i] = img
 
             self.index += 1
@@ -146,7 +113,6 @@ def parse_opt():
 def export_engine(opt, calib=None):
 
     f = opt.engine_file_path
-    # int8_mode = opt.int8
 
     logger = trt.Logger(trt.Logger.INFO)
     builder = trt.Builder(logger)
