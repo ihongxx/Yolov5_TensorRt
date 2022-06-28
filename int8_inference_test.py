@@ -1,11 +1,12 @@
+import imp
 import time
 from typing import List
 import numpy as np
-import tensorrt
 import torch
 from pycuda import driver
 import pycuda.autoinit
 from PIL import Image, ImageDraw, ImageFont
+import tensorrt as trt
 
 from utils.general import non_max_suppression, scale_coords
 
@@ -15,8 +16,15 @@ def time_sync():
         torch.cuda.synchronize()
     return time.time()
 
-def trt_pre(batch, context, d_size,
-            d_type):  # Need to set both input and output precisions to FP16 to fully enable FP16
+def loadEngine2TensorRT(filepath):
+    G_LOGGER = trt.Logger(trt.Logger.WARNING)
+    # 反序列化引擎
+    with open(filepath, 'rb') as f, trt.Runtime(G_LOGGER) as runtime:
+        engine = runtime.deaerialize_cuda_engine(f.read())
+    
+    return engine
+
+def trt_pre(batch, context, d_size, d_type):  # Need to set both input and output precisions to FP16 to fully enable FP16
     output = np.empty(d_size, dtype=d_type)
     batch = batch.reshape(-1)
     d_input = driver.mem_alloc(1 * batch.nbytes)
@@ -35,10 +43,10 @@ def trt_pre(batch, context, d_size,
 
 
 def python_tensorrt_predict(model_path):
-    # 加载模型A
-    trt_model = tensorrt.Runtime(tensorrt.Logger(tensorrt.Logger.WARNING))
-    # 反序列化模型
-    engine = trt_model.deserialize_cuda_engine(open(model_path, "rb").read())
+    # # 加载模型A
+    # trt_model = tensorrt.Runtime(tensorrt.Logger(tensorrt.Logger.WARNING))
+    # # 反序列化模型
+    # engine = trt_model.deserialize_cuda_engine(open(model_path, "rb").read())
     # 创建推理上下文
     context = engine.create_execution_context()
     for binding in engine:
@@ -114,6 +122,8 @@ def drawImage(image, class_list):
 if __name__ == '__main__':
     # 通官方的源码export.py生成tensorrt模型
     # model_path = r"/data/kile/202204/yolov5/log/2.engine"
-    model_path = "./model/trt/cell_fp16.engine"
+    engine_file = "./model/trt/cell_int8_v1.engine"
+    engine = loadEngine2TensorRT(engine_file)
+
+    
     python_tensorrt_predict(model_path)
-    from PIL import Image

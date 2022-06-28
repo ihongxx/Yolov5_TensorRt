@@ -221,44 +221,6 @@ class LoadImages:
             assert img0 is not None, f'Image Not Found {path}'
             s = f'image {self.count}/{self.nf} {path}: '
         
-        def preprocess_v1(image_raw):
-            height = 640
-            width = 640
-            h, w, c = image_raw.shape
-            image = cv2.cvtColor(image_raw, cv2.COLOR_BGR2RGB)
-            # Calculate widht and height and paddings
-            r_w = width / w
-            r_h = height / h
-            if r_h > r_w:
-                tw = width
-                th = int(r_w * h)
-                tx1 = tx2 = 0
-                ty1 = int((height - th) / 2)
-                ty2 = height - th - ty1
-            else:
-                tw = int(r_h * w)
-                th = height
-                tx1 = int((width - tw) / 2)
-                tx2 = width - tw - tx1
-                ty1 = ty2 = 0
-            # Resize the image with long side while maintaining ratio
-            image = cv2.resize(image, (tw, th))
-            # Pad the short side with (128,128,128)
-            image = cv2.copyMakeBorder(
-                image, ty1, ty2, tx1, tx2, cv2.BORDER_CONSTANT, (128, 128, 128)
-            )
-            image = image.astype(np.float32)
-            # Normalize to [0,1]
-            # image /= 255.0
-            # HWC to CHW format:
-            image = np.transpose(image, [2, 0, 1])
-            # CHW to NCHW format
-            #image = np.expand_dims(image, axis=0)
-            # Convert the image to row-major order, also known as "C order":
-            #image = np.ascontiguousarray(image)
-            return image
-        # img = preprocess_v1(img0)
-
         # Padded resize
         img = letterbox(img0, self.img_size, stride=self.stride, auto=self.auto)[0]
 

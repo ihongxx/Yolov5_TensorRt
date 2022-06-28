@@ -35,7 +35,6 @@ def run(weights,  # model.pt path(s)
         save_txt=False,  # save results to *.txt
         save_conf=False,  # save confidences in --save-txt labels
         save_crop=False,  # save cropped prediction boxes
-        # nosave=False,  # do not save images/videos
         classes=None,  # filter by class: --class 0, or --class 0 2 3
         agnostic_nms=False,  # class-agnostic NMS
         augment=False,  # augmented inference
@@ -73,13 +72,13 @@ def run(weights,  # model.pt path(s)
         t3 = time_sync()
         dt[1] += t3 - t2
         print('inference time:', dt[1])
-        print('pred1:', pred)
+        # print('pred1:', pred)
 
         # NMS
         pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
         dt[2] += time_sync() - t3
-        print('nms time:', dt[2])
-        print('pred2:', pred)
+        print('nms time: {:.5f} ms'.format(dt[2]))
+        # print('pred2:', pred)
         # dt[2] += time_sync() - t3
 
         # Second-stage classifier (optional)
@@ -98,7 +97,7 @@ def run(weights,  # model.pt path(s)
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
-                print('det:', det)
+                # print('det:', det)
 
                 # Print results
                 for c in det[:, -1].unique():
@@ -127,11 +126,11 @@ def run(weights,  # model.pt path(s)
             # if save_img:
             if True:
                 if dataset.mode == 'image':
-                    cv2.imwrite('./runs/hxx/test1.jpg', im0)
+                    cv2.imwrite('./runs/hxx/test_process.jpg', im0)
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='./model/trt/cell_int8.engine', help='model path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default='./model/trt/cell_int8_process.engine', help='model path(s)')
     parser.add_argument('--source', type=str, default='./data/1.jpg', help='file/dir/URL/glob, 0 for webcam')
     parser.add_argument('--data', type=str, default='./data/cell.yaml', help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
