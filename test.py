@@ -62,7 +62,6 @@ def python_tensorrt_predict(model_path):
             input_w = engine.get_binding_shape(binding)[-1]
             input_h = engine.get_binding_shape(binding)[-2]
     from utils.datasets import LoadImages
-    # source = r"/data/kile/202204/yolov5/result/aircraft_4.jpg"
     source = "./data/1.jpg"
     start = time.perf_counter()
     dataset = LoadImages(source, img_size=[input_w, input_h], stride=32, auto=False)

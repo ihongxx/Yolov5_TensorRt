@@ -3,7 +3,7 @@ import time
 from typing import List
 import numpy as np
 import torch
-from pycuda import driver
+import pycuda.driver as cuda
 import pycuda.autoinit
 from PIL import Image, ImageDraw, ImageFont
 import tensorrt as trt
@@ -41,6 +41,16 @@ def trt_pre(batch, context, d_size, d_type):  # Need to set both input and outpu
     stream.synchronize()
     return output
 
+def allocate_buffers(engine):
+    inputs = []
+    outputs = []
+    bindings = []
+    stream = cuda.Stream()
+    for binding in engine:
+        size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
+        dtype = trt.nptype(engine.get_binding_dtype(binding))
+        
+
 
 def python_tensorrt_predict(model_path):
     # # 加载模型A
@@ -48,6 +58,8 @@ def python_tensorrt_predict(model_path):
     # # 反序列化模型
     # engine = trt_model.deserialize_cuda_engine(open(model_path, "rb").read())
     # 创建推理上下文
+    engine = loadEngine2TensorRT(model_path)
+
     context = engine.create_execution_context()
     for binding in engine:
         if not engine.binding_is_input(binding):
@@ -123,7 +135,4 @@ if __name__ == '__main__':
     # 通官方的源码export.py生成tensorrt模型
     # model_path = r"/data/kile/202204/yolov5/log/2.engine"
     engine_file = "./model/trt/cell_int8_v1.engine"
-    engine = loadEngine2TensorRT(engine_file)
-
-    
-    python_tensorrt_predict(model_path)
+    python_tensorrt_predict(engine_file)
