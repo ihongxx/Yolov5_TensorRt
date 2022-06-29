@@ -81,7 +81,7 @@ def python_tensorrt_predict(model_path):
         pred = non_max_suppression(outputs, 0.25, 0.45)
         pred[0][:,:4] = scale_coords(im.shape[1:], pred[0][:,:4], im0s.shape)
         image = drawImage(image, list(pred))
-        image.save("./runs/hxx/test_inference.jpg")
+        image.save("./runs/hxx/test_inference_1.jpg")
     end = time.perf_counter()
     print(f"{end -start}")
 

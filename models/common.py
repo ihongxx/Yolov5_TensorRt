@@ -347,7 +347,9 @@ class DetectMultiBackend(nn.Module):
             bindings = OrderedDict()
             fp16 = False  # default updated below
             for index in range(model.num_bindings):
+                print('index:', index)
                 name = model.get_binding_name(index)
+                print('name:', name)
                 dtype = trt.nptype(model.get_binding_dtype(index))
                 shape = tuple(model.get_binding_shape(index))
                 data = torch.from_numpy(np.empty(shape, dtype=np.dtype(dtype))).to(device)
