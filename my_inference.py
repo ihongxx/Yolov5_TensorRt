@@ -312,5 +312,5 @@ if __name__ == '__main__':
     save_image_file_2 = './runs/hxx/test_2.jpg'
     save_image_file_3 = './runs/hxx/test_3.jpg'
     python_tensorrt_predict(img_file, engine_file, save_image_file_1)
-    my_tensorrt_predict(img_file, engine_file, save_image_file_2)
-    my_letterbox_tensorrt_predict(img_file, engine_file, save_image_file_3)
+    # my_tensorrt_predict(img_file, engine_file, save_image_file_2)
+    # my_letterbox_tensorrt_predict(img_file, engine_file, save_image_file_3)
