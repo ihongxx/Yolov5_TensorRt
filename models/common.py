@@ -12,6 +12,7 @@ from copy import copy
 from pathlib import Path
 
 import cv2
+from matplotlib import image
 import numpy as np
 import pandas as pd
 import requests
@@ -352,11 +353,14 @@ class DetectMultiBackend(nn.Module):
                 print('name:', name)
                 dtype = trt.nptype(model.get_binding_dtype(index))
                 shape = tuple(model.get_binding_shape(index))
+                print('shape:', model.get_binding_shape(index))
                 data = torch.from_numpy(np.empty(shape, dtype=np.dtype(dtype))).to(device)
                 bindings[name] = Binding(name, dtype, shape, data, int(data.data_ptr()))
                 if model.binding_is_input(index) and dtype == np.float16:
                     fp16 = True
+            print('bindings:', bindings)
             binding_addrs = OrderedDict((n, d.ptr) for n, d in bindings.items())
+            print('binding_addrs:', binding_addrs)
             context = model.create_execution_context()
             batch_size = bindings['images'].shape[0]
         elif coreml:  # CoreML
@@ -424,10 +428,19 @@ class DetectMultiBackend(nn.Module):
             request.infer()
             y = request.output_blobs['output'].buffer  # name=next(iter(request.output_blobs))
         elif self.engine:  # TensorRT
+            # print('image:', im.shape)  
+            # #torch.Size([1, 3, 640, 640])
+            # print('im_data_ptr:', self.binding_addrs['images'])
             assert im.shape == self.bindings['images'].shape, (im.shape, self.bindings['images'].shape)
             self.binding_addrs['images'] = int(im.data_ptr())
-            self.context.execute_v2(list(self.binding_addrs.values()))
+            # print('input_im_data_ptr:', int(im.data_ptr()))
+            # input_im_data_ptr: 47294824448
+            # print("self.binding_addrs.values():", list(self.binding_addrs.values()))
+            # [47294824448, 47309651968, 47310343168, 47310516224, 47310559744]
+            self.context.execute_v2(list(self.binding_addrs.values()))  # 输入的是地址
             y = self.bindings['output'].data
+            # print('y:', y.shape)
+
         elif self.coreml:  # CoreML
             im = im.permute(0, 2, 3, 1).cpu().numpy()  # torch BCHW to numpy BHWC shape(1,320,192,3)
             im = Image.fromarray((im[0] * 255).astype('uint8'))
