@@ -11,7 +11,7 @@ import yaml
 import torch.nn as nn
 import pycuda.driver as cuda
 import pycuda.autoinit
-from pathlib import Path
+# from pathlib import Path
 import tensorrt as trt
 from collections import OrderedDict, namedtuple
 from utils.datasets import IMG_FORMATS, VID_FORMATS, LoadImages
@@ -312,5 +312,5 @@ if __name__ == '__main__':
     save_image_file_2 = './runs/hxx/test_2.jpg'
     save_image_file_3 = './runs/hxx/test_3.jpg'
     python_tensorrt_predict(img_file, engine_file, save_image_file_1)
-    # my_tensorrt_predict(img_file, engine_file, save_image_file_2)
-    # my_letterbox_tensorrt_predict(img_file, engine_file, save_image_file_3)
+    my_tensorrt_predict(img_file, engine_file, save_image_file_2)
+    my_letterbox_tensorrt_predict(img_file, engine_file, save_image_file_3)
