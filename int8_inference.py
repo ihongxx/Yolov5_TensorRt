@@ -306,7 +306,7 @@ def my_letterbox_tensorrt_predict(img_file, engine_file, image_output_file):
 
 if __name__ == '__main__':
     # model_path = r"/data/kile/202204/yolov5/log/2.engine"
-    engine_file = "./model/trt/cell_int8_process.engine"
+    engine_file = "./model/trt/cell_fp16.engine"
     img_file = './data/1.jpg'
     save_image_file_1 = './runs/hxx/test_1.jpg'
     save_image_file_2 = './runs/hxx/test_2.jpg'
