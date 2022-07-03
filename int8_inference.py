@@ -179,7 +179,6 @@ def python_tensorrt_predict(img_file, engine_file, image_output_file):
     model = Backend(weights=engine_file, device=device)
     # model = DetectMultiBackend(weights=engine_file, device=device, fp16=half)
 
-    t1 = time_sync()
     stride, pt = 32, False
     imgsz = (640,640)
     imgsz = check_img_size(imgsz, s=stride)
@@ -190,6 +189,7 @@ def python_tensorrt_predict(img_file, engine_file, image_output_file):
     # model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
     dt = [0.0, 0.0, 0.0]
     for path, im, im0, vid_cap, s in dataset:
+        t1 = time_sync()
         im = torch.from_numpy(im).to(device)
         # model.fp16 = False
         fp16 = False
