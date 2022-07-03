@@ -1,6 +1,8 @@
 from mimetypes import init
 import re
 import time
+import argparse
+from turtle import st
 from typing import List
 import cv2
 from matplotlib.pyplot import cla
@@ -303,6 +305,15 @@ def my_letterbox_tensorrt_predict(img_file, engine_file, image_output_file):
         # output.shape: torch.Size([1, 25200, 9])
 
     post_process(im, im0, pred, image_output_file, dt)
+
+def parse_opt():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--weights', type=str, default='./model/pth/cell.engine')
+    parser.add_argument('--source', type=str, default='./data/1.jpg', help='input image')
+    parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=[640, 640], help='inference size h,w')
+    parser.add_argument('--device', default='cuda:0', help='cuda device: 0')
+    parser.add_argument('--half', default=False, help='use FP16 half-precision inference')
+    opt = parser.parse_args()
 
 if __name__ == '__main__':
     # model_path = r"/data/kile/202204/yolov5/log/2.engine"
