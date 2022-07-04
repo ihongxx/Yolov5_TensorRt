@@ -348,19 +348,19 @@ class DetectMultiBackend(nn.Module):
             bindings = OrderedDict()
             fp16 = False  # default updated below
             for index in range(model.num_bindings):
-                print('index:', index)
+                # print('index:', index)
                 name = model.get_binding_name(index)
-                print('name:', name)
+                # print('name:', name)
                 dtype = trt.nptype(model.get_binding_dtype(index))
                 shape = tuple(model.get_binding_shape(index))
-                print('shape:', model.get_binding_shape(index))
+                # print('shape:', model.get_binding_shape(index))
                 data = torch.from_numpy(np.empty(shape, dtype=np.dtype(dtype))).to(device)
                 bindings[name] = Binding(name, dtype, shape, data, int(data.data_ptr()))
                 if model.binding_is_input(index) and dtype == np.float16:
                     fp16 = True
-            print('bindings:', bindings)
+            # print('bindings:', bindings)
             binding_addrs = OrderedDict((n, d.ptr) for n, d in bindings.items())
-            print('binding_addrs:', binding_addrs)
+            # print('binding_addrs:', binding_addrs)
             context = model.create_execution_context()
             batch_size = bindings['images'].shape[0]
         elif coreml:  # CoreML

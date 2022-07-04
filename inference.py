@@ -57,38 +57,40 @@ def run(weights,  # model.pt path(s)
     bs = 1  # batch_size
 
     # Run inference
-    # model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
+    model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
-        print('s:', s)
-        t1 = time_sync()
+        t1 = time_sync() 
         im = torch.from_numpy(im).to(device)
-        im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
+        
+        im = im.half() if model.fp16 else im.float()
+        # im = im.float()  # uint8 to fp16/32
+        
         im /= 255  # 0 - 255 to 0.0 - 1.0
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
         # print('im.shape:', im.shape)  # im.shape: torch.Size([1, 3, 640, 640])
         t2 = time_sync()
+        dt[0] += t2 - t1
 
         # Inference
         pred = model(im, augment=augment, visualize=visualize)
-        print('pred:', pred.shape)
+        # print('pred:', pred.shape)
         t3 = time_sync()
         dt[1] += t3 - t2
         print('inference time:', dt[1])
-        # print('pred1:', pred)
 
         # NMS
         pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
         dt[2] += time_sync() - t3
         print('nms time: {:.5f} ms'.format(dt[2]))
-        # print('pred2:', pred)
         # dt[2] += time_sync() - t3
 
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
         # Process predictions
         for i, det in enumerate(pred):  # per image
+            seen += 1
             
             p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
 
@@ -131,10 +133,14 @@ def run(weights,  # model.pt path(s)
             if True:
                 if dataset.mode == 'image':
                     cv2.imwrite('./runs/hxx/test_process.jpg', im0)
+    
+    # Print results
+    t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
+    LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='./model/pth/cell.pt', help='model path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default='./model/trt/cell_int8.engine', help='model path(s)')
     parser.add_argument('--source', type=str, default='./data/1.jpg', help='file/dir/URL/glob, 0 for webcam')
     parser.add_argument('--data', type=str, default='./data/cell.yaml', help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')

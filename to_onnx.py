@@ -38,6 +38,8 @@ def export_onnx(args):
     img_size = [check_img_size(x, gs) for x in img_size]
     im = torch.zeros(args.batch_size, 3, *img_size).to(args.device)
 
+    # if opt.half:
+        # img, model = img.half(), model.half()  # to FP16
     for k,m in model.named_modules():
         if isinstance(m, models.common.Conv):
             if isinstance(m.act, nn.SiLU):

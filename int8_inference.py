@@ -18,6 +18,7 @@ import tensorrt as trt
 from collections import OrderedDict, namedtuple
 from utils.datasets import IMG_FORMATS, VID_FORMATS, LoadImages
 from utils.plots import Annotator, colors
+from models.common import DetectMultiBackend
 from utils.general import non_max_suppression, check_suffix, check_version, scale_coords, check_img_size
 
 def time_sync():
@@ -50,14 +51,17 @@ class Backend(nn.Module):
     def __init__(self, weights='yolov5s.pt', device=torch.device('cuda:0'), dnn=False, data=None, fp16=False):
         super().__init__()
 
+        # fp16 &= (pt or jit or onnx or engine) and device.type != 'cpu'
         Binding = namedtuple('Binding', ('name', 'dtype', 'shape', 'data', 'ptr'))
         engine = loadEngine2TensorRT(weights)
         bindings = OrderedDict()
+        fp16 = False
         for index in range(engine.num_bindings):
             # print('index:', index)
             name = engine.get_binding_name(index)
             # print('name:', name)
             dtype = trt.nptype(engine.get_binding_dtype(index))
+            # print('dtype:', dtype)
             shape = tuple(engine.get_binding_shape(index))
             data = torch.from_numpy(np.empty(shape, dtype=np.dtype(dtype))).to(device)
             bindings[name] = Binding(name, dtype, shape, data, int(data.data_ptr()))
@@ -174,18 +178,15 @@ def post_process(im, im0, pred, image_output_file, dt):
 
         cv2.imwrite(image_output_file, im0)
 
-def python_tensorrt_predict(img_file, engine_file, image_output_file):
+def python_tensorrt_predict(opt):
     '''通官方的源码export.py生成tensorrt模型'''
-    device = torch.device("cuda:0")
-    # data = "./data/cell.yaml"
-    model = Backend(weights=engine_file, device=device)
-    # model = DetectMultiBackend(weights=engine_file, device=device, fp16=half)
+    device = torch.device(opt.device)
+    model = Backend(weights=opt.weights, device=device, fp16=opt.half)
+    # model = DetectMultiBackend(weights=opt.weights, device=device, fp16=opt.half)
 
     stride, pt = 32, False
-    imgsz = (640,640)
-    imgsz = check_img_size(imgsz, s=stride)
-    source = img_file
-    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
+    imgsz = check_img_size(opt.imgsz, s=stride)
+    dataset = LoadImages(opt.input_img, img_size=imgsz, stride=stride, auto=pt)
 
     # Run inference
     # model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
@@ -193,9 +194,8 @@ def python_tensorrt_predict(img_file, engine_file, image_output_file):
     for path, im, im0, vid_cap, s in dataset:
         t1 = time_sync()
         im = torch.from_numpy(im).to(device)
-        # model.fp16 = False
-        fp16 = False
-        im = im.half() if fp16 else im.float()  # uint8 to fp16/32
+        im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
+        # print('im.dtype:', im.dtype)
         im /= 255  # 0 - 255 to 0.0 - 1.0
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
@@ -210,15 +210,15 @@ def python_tensorrt_predict(img_file, engine_file, image_output_file):
         print('inference time: {:.5f} ms'.format(dt[1]))
         # print('pred1:', pred)
 
-    post_process(im, im0, pred, image_output_file, dt)
+        post_process(im, im0, pred, opt.output_img, dt)
 
-def my_tensorrt_predict(img_file, engine_file, image_output_file):
+def my_tensorrt_predict(opt):
     '''通过一般的数据处理进行模型推理'''
 
     dt = [0.0, 0.0, 0.0]
 
     # 加载engine引擎
-    engine = loadEngine2TensorRT(engine_file)
+    engine = loadEngine2TensorRT(opt.weights)
 
     # 分配内存空间
     inputs, outputs, bindings, stream = allocate_buffers(engine)  
@@ -228,7 +228,7 @@ def my_tensorrt_predict(img_file, engine_file, image_output_file):
 
     # 将图片加载到inputs中
     t1 = time_sync()
-    im0 = cv2.imread(img_file)
+    im0 = cv2.imread(opt.input_img)
     im = normalize_image(im0)
     t2 = time_sync()
     dt[0] += t2 - t1
@@ -248,16 +248,17 @@ def my_tensorrt_predict(img_file, engine_file, image_output_file):
     output = outputs[3].reshape(1, -1, 9)
     # 将numpy.ndarray转为tensor， 因为后面nms需要to device
     pred = torch.from_numpy(output)  
+    # print('pred:', pred)
     # print('output data_ptr:', pred.data_ptr())
     # output.shape: torch.Size([1, 25200, 9])
 
-    post_process(im, im0, pred, image_output_file, dt)
+    post_process(im, im0, pred, opt.output_img, dt)
 
-def my_letterbox_tensorrt_predict(img_file, engine_file, image_output_file):
+def my_letterbox_tensorrt_predict(opt):
     device = torch.device("cuda:0")
 
     # 加载engine引擎
-    engine = loadEngine2TensorRT(engine_file)
+    engine = loadEngine2TensorRT(opt.weights)
 
     # 分配内存空间
     inputs, outputs, bindings, stream = allocate_buffers(engine)  
@@ -271,7 +272,7 @@ def my_letterbox_tensorrt_predict(img_file, engine_file, image_output_file):
     stride, names, pt = 32, ['cells', 'Platelets', 'RBC', 'WBC'], False
     imgsz = (640,640)
     imgsz = check_img_size(imgsz, s=stride)
-    dataset = LoadImages(img_file, img_size=imgsz, stride=stride, auto=pt)
+    dataset = LoadImages(opt.input_img, img_size=imgsz, stride=stride, auto=pt)
 
     # Run inference
     dt = [0.0, 0.0, 0.0]
@@ -304,24 +305,21 @@ def my_letterbox_tensorrt_predict(img_file, engine_file, image_output_file):
         # print('output data_ptr:', pred.data_ptr())
         # output.shape: torch.Size([1, 25200, 9])
 
-    post_process(im, im0, pred, image_output_file, dt)
+    post_process(im, im0, pred, opt.output_img, dt)
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='./model/pth/cell.engine')
-    parser.add_argument('--source', type=str, default='./data/1.jpg', help='input image')
+    parser.add_argument('--weights', type=str, default='./model/trt/cell_fp32.engine')
+    parser.add_argument('--input_img', type=str, default='./data/1.jpg', help='input image')
+    parser.add_argument('--output_img', type=str, default='./runs/hxx/test_1.jpg')
     parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=[640, 640], help='inference size h,w')
     parser.add_argument('--device', default='cuda:0', help='cuda device: 0')
     parser.add_argument('--half', default=False, help='use FP16 half-precision inference')
     opt = parser.parse_args()
+    return opt
 
 if __name__ == '__main__':
-    # model_path = r"/data/kile/202204/yolov5/log/2.engine"
-    engine_file = "./model/trt/cell_fp16.engine"
-    img_file = './data/1.jpg'
-    save_image_file_1 = './runs/hxx/test_1.jpg'
-    save_image_file_2 = './runs/hxx/test_2.jpg'
-    save_image_file_3 = './runs/hxx/test_3.jpg'
-    python_tensorrt_predict(img_file, engine_file, save_image_file_1)
-    my_tensorrt_predict(img_file, engine_file, save_image_file_2)
-    my_letterbox_tensorrt_predict(img_file, engine_file, save_image_file_3)
+    opt = parse_opt()
+    # python_tensorrt_predict(opt)
+    # my_tensorrt_predict(opt)
+    my_letterbox_tensorrt_predict(opt)
