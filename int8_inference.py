@@ -41,6 +41,7 @@ def normalize_image(image):
     im = cv2.resize(image, (h,w))
     im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     im = im.transpose((2, 0, 1)).astype(np.float32)
+    # im = im.transpose((2, 0, 1)).astype(np.float16)
     im = np.ascontiguousarray(im)  # 数据在内存中存储变得连续
     im /= 255 
     if len(im.shape) == 3:
@@ -194,7 +195,8 @@ def python_tensorrt_predict(opt):
     for path, im, im0, vid_cap, s in dataset:
         t1 = time_sync()
         im = torch.from_numpy(im).to(device)
-        im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
+        # im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
+        im = im.half() if opt.half else im.float()  # uint8 to fp16/32  Tensor对象只能half
         # print('im.dtype:', im.dtype)
         im /= 255  # 0 - 255 to 0.0 - 1.0
         if len(im.shape) == 3:
@@ -278,8 +280,10 @@ def my_letterbox_tensorrt_predict(opt):
     dt = [0.0, 0.0, 0.0]
     for path, im, im0, vid_cap, s in dataset:
         # im.dtype :unit8 ,如需要转化成float32
-        im = im.astype(np.float32)
+        im = im.astype(np.float16) if opt.half else im.astype(np.float32)
+
         # im = torch.from_numpy(im)
+        # im = im.half() if opt.half else im.float()  # uint8 to fp16/32
         im = im / 255  # 0 - 255 to 0.0 - 1.0
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
@@ -309,17 +313,17 @@ def my_letterbox_tensorrt_predict(opt):
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='./model/trt/cell_fp32.engine')
+    parser.add_argument('--weights', type=str, default='./model/trt/cell_fp16.engine')
     parser.add_argument('--input_img', type=str, default='./data/1.jpg', help='input image')
     parser.add_argument('--output_img', type=str, default='./runs/hxx/test_1.jpg')
     parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=[640, 640], help='inference size h,w')
     parser.add_argument('--device', default='cuda:0', help='cuda device: 0')
-    parser.add_argument('--half', default=False, help='use FP16 half-precision inference')
+    parser.add_argument('--half', default=True, help='use FP16 half-precision inference')
     opt = parser.parse_args()
     return opt
 
 if __name__ == '__main__':
     opt = parse_opt()
-    # python_tensorrt_predict(opt)
+    python_tensorrt_predict(opt)
     # my_tensorrt_predict(opt)
-    my_letterbox_tensorrt_predict(opt)
+    # my_letterbox_tensorrt_predict(opt)

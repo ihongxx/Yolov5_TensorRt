@@ -27,7 +27,8 @@ image process time: 0.76500 ms, inference time: 0.00699 ms, nms time: 0.00601 ms
 
     # 这边推理还是采用的fp32，因为onnx模型数据类型就是fp32, 所以就算更改了img数据类型为fp16，但是模型还是fp32类型
     python int8_inference.py --weights ./model/trt/cell_fp16.engine --half True
-image process time: 0.75011 ms, inference time: 0.00300 ms, nms time: 0.00100 ms
+image process time: 0.75011 ms, inference time: 0.00300 ms, nms time: 0.00100 ms  img:fp32, model:fp32
+image process time: 0.75601 ms, inference time: 0.00299 ms, nms time: 0.00700 ms  img:half, model:fp16
     
     python int8_inference.py --weights ./model/trt/cell_fp32.engine
 image process time: 0.75000 ms, inference time: 0.00300 ms, nms time: 0.00500 ms
@@ -39,7 +40,8 @@ image process time: 0.00801 ms, inference time: 0.01099 ms, nms time: 0.00500 ms
 
     # 这边推理还是采用的fp32，因为onnx模型数据类型就是fp32
     python int8_inference.py --weights ./model/trt/cell_fp16.engine --half True
-image process time: 0.00601 ms, inference time: 0.00396 ms, nms time: 0.00300 ms
+image process time: 0.00601 ms, inference time: 0.00396 ms, nms time: 0.00300 ms  img:fp32, model:fp32
+image process time: 0.01800 ms, inference time: 0.00501 ms, nms time: 0.00400 ms  img:fp16, model:fp16
     
     python int8_inference.py --weights ./model/trt/cell_fp32.engine
 image process time: 0.00700 ms, inference time: 0.00700 ms, nms time: 0.00500 ms
@@ -50,7 +52,8 @@ image process time: 0.00701 ms, inference time: 0.01000 ms, nms time: 0.00399 ms
 
     # 这边推理还是采用的fp32，因为onnx模型数据类型就是fp32, 所以就算更改了img数据类型为fp16，但是模型还是fp32类型
     python int8_inference.py --weights ./model/trt/cell_fp16.engine --half True
-image process time: 0.00900 ms, inference time: 0.00505 ms, nms time: 0.00300 ms
+image process time: 0.00900 ms, inference time: 0.00505 ms, nms time: 0.00300 ms  img:fp32, model:fp32
+image process time: 0.02100 ms, inference time: 0.00508 ms, nms time: 0.00392 ms  img:fp16, model:fp16
     
     python int8_inference.py --weights ./model/trt/cell_fp32.engine
 image process time: 0.00801 ms, inference time: 0.00399 ms, nms time: 0.00300 ms

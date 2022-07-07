@@ -1,4 +1,5 @@
 from ast import arg
+from pickle import FALSE
 from turtle import st
 from matplotlib.pyplot import cla
 from numpy import isin
@@ -10,6 +11,7 @@ import models
 import onnxsim
 
 from utils.general import check_img_size
+# from models.experimental import attempt_load
 
 class SiLu(nn.Module):
     @staticmethod
@@ -17,7 +19,9 @@ class SiLu(nn.Module):
         return x * torch.sigmoid(x)
 
 def export_onnx(args):
-    checkpoint = torch.load(args.torch_file_path)
+    device = torch.device('cuda:0')
+    # model = attempt_load(weights=args.torch_file_path, device=device, inplace=True, fuse=True)
+    checkpoint = torch.load(args.torch_file_path, map_location=device)
     model = checkpoint['model'].float().fuse().eval()
 
     from models.yolo import Detect, Model
@@ -36,10 +40,9 @@ def export_onnx(args):
     img_size = args.img_size
     gs =int(max(model.stride))
     img_size = [check_img_size(x, gs) for x in img_size]
-    im = torch.zeros(args.batch_size, 3, *img_size).to(args.device)
+    im = torch.zeros(args.batch_size, 3, *img_size).to(device)
 
-    # if opt.half:
-        # img, model = img.half(), model.half()  # to FP16
+    # model.eval()
     for k,m in model.named_modules():
         if isinstance(m, models.common.Conv):
             if isinstance(m.act, nn.SiLU):
@@ -49,9 +52,14 @@ def export_onnx(args):
             m.onnx_dynamic = args.dynamic
             if hasattr(m, 'forward_export'):
                 m.forward = m.forward_export
-    
+
     for _ in range(2):
         y = model(im)
+    ######
+    if args.half:
+        im, model = im.half(), model.half()  # to FP16
+    ####
+
     
     grid = model.model[-1].anchor_grid
     model.model[-1].anchor_grid = [a[..., :1, :1, :] for a in grid]
@@ -83,9 +91,10 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default='1', help='batch size')
     parser.add_argument('--img-size', nargs='+', type=int, default=[640,640], help='image size')
     parser.add_argument('--device', type=str, default='cuda:0')
+    parser.add_argument('--half', type=str, default=True, help='half')
     parser.add_argument('--torch_file_path', type=str, default='./model/pth/cell.pt')
-    parser.add_argument('--onnx_file_path', type=str, default='./model/onnx/cell.onnx')
-    parser.add_argument('--dynamic', action='store_true', help='dynamic ONNX axes')
+    parser.add_argument('--onnx_file_path', type=str, default='./model/onnx/cell_half.onnx')
+    parser.add_argument('--dynamic', default=False, help='dynamic ONNX axes')
     parser.add_argument('--opset', type=int, default=12, help='ONNX: opset version')
 
 

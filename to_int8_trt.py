@@ -37,10 +37,10 @@ if __name__ == '__main__':
     parser.add_argument('--height', type=int, default=640)
     parser.add_argument('--width', type=int, default=640)
     parser.add_argument('--cache_file', type=str, default='model/yolov5s_calibration.cache')
-    parser.add_argument('--mode', type=str, default='int8')
+    parser.add_argument('--mode', type=str, default='fp16')
     parser.add_argument('--CALIB_IMG_DIR', type=str, default='E:\\Datasets\\IMAGES\\Object_Detection\\Red_Cell\\images')
-    parser.add_argument('--onnx_file_path', default='./model/onnx/cell.onnx', help='onnx file path')
-    parser.add_argument('--engine_file_path', default='./model/trt/cell_int8_process.engine', help='onnx file path')
+    parser.add_argument('--onnx_file_path', default='./model/onnx/cell_half.onnx', help='onnx file path')
+    parser.add_argument('--engine_file_path', default='./model/trt/cell_fp16.engine', help='onnx file path')
     args = parser.parse_args()
 
     if args.mode.lower() == 'int8':
